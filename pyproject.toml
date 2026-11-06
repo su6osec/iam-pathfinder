@@ -55,3 +55,8 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# typer's declarative API requires calls (typer.Argument/typer.Option) in
+# parameter defaults; that is the documented pattern.
+"src/iam_pathfinder/cli.py" = ["B008"]
