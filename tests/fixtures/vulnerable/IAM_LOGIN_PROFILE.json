@@ -1,0 +1,74 @@
+{
+  "UserDetailList": [
+    {
+      "UserName": "alice",
+      "UserId": "AIDA717001872152",
+      "Arn": "arn:aws:iam::123456789012:user/alice",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "GroupList": [],
+      "UserPolicyList": [
+        {
+          "PolicyName": "escalate",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "iam:CreateLoginProfile",
+                "Resource": "arn:aws:iam::123456789012:user/bob"
+              }
+            ]
+          }
+        }
+      ],
+      "AttachedManagedPolicies": []
+    },
+    {
+      "UserName": "bob",
+      "UserId": "AIDA690327414556",
+      "Arn": "arn:aws:iam::123456789012:user/bob",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "GroupList": [],
+      "UserPolicyList": [],
+      "AttachedManagedPolicies": [
+        {
+          "PolicyName": "AdministratorAccess",
+          "PolicyArn": "arn:aws:iam::123456789012:policy/AdministratorAccess"
+        }
+      ]
+    }
+  ],
+  "GroupDetailList": [],
+  "RoleDetailList": [],
+  "Policies": [
+    {
+      "PolicyName": "AdministratorAccess",
+      "PolicyId": "ANPA450294842654",
+      "Arn": "arn:aws:iam::123456789012:policy/AdministratorAccess",
+      "Path": "/",
+      "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
+      "IsAttachable": true,
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "PolicyVersionList": [
+        {
+          "VersionId": "v1",
+          "IsDefaultVersion": true,
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*"
+              }
+            ]
+          },
+          "CreateDate": "2024-01-01T00:00:00+00:00"
+        }
+      ]
+    }
+  ]
+}

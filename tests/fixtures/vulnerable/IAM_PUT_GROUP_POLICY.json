@@ -1,0 +1,43 @@
+{
+  "UserDetailList": [
+    {
+      "UserName": "alice",
+      "UserId": "AIDA717001872152",
+      "Arn": "arn:aws:iam::123456789012:user/alice",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "GroupList": [
+        "devs"
+      ],
+      "UserPolicyList": [
+        {
+          "PolicyName": "escalate",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "iam:PutGroupPolicy",
+                "Resource": "arn:aws:iam::123456789012:group/devs"
+              }
+            ]
+          }
+        }
+      ],
+      "AttachedManagedPolicies": []
+    }
+  ],
+  "GroupDetailList": [
+    {
+      "GroupName": "devs",
+      "GroupId": "AGPA948063747189",
+      "Arn": "arn:aws:iam::123456789012:group/devs",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "GroupPolicyList": [],
+      "AttachedManagedPolicies": []
+    }
+  ],
+  "RoleDetailList": [],
+  "Policies": []
+}

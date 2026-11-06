@@ -1,0 +1,31 @@
+{
+  "UserDetailList": [
+    {
+      "UserName": "alice",
+      "UserId": "AIDA717001872152",
+      "Arn": "arn:aws:iam::123456789012:user/alice",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "GroupList": [],
+      "UserPolicyList": [
+        {
+          "PolicyName": "limited",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "iam:PutRolePolicy",
+                "Resource": "arn:aws:iam::123456789012:role/ghost"
+              }
+            ]
+          }
+        }
+      ],
+      "AttachedManagedPolicies": []
+    }
+  ],
+  "GroupDetailList": [],
+  "RoleDetailList": [],
+  "Policies": []
+}

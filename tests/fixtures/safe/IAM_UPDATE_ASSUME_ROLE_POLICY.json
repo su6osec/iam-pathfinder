@@ -1,0 +1,79 @@
+{
+  "UserDetailList": [
+    {
+      "UserName": "alice",
+      "UserId": "AIDA717001872152",
+      "Arn": "arn:aws:iam::123456789012:user/alice",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "GroupList": [],
+      "UserPolicyList": [
+        {
+          "PolicyName": "limited",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "iam:UpdateAssumeRolePolicy",
+                "Resource": "arn:aws:iam::123456789012:role/app"
+              },
+              {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Resource": "arn:aws:iam::123456789012:role/other"
+              }
+            ]
+          }
+        }
+      ],
+      "AttachedManagedPolicies": []
+    }
+  ],
+  "GroupDetailList": [],
+  "RoleDetailList": [
+    {
+      "RoleName": "app",
+      "RoleId": "AROA278075954279",
+      "Arn": "arn:aws:iam::123456789012:role/app",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "arn:aws:iam::123456789012:user/alice"
+            },
+            "Resource": "*"
+          }
+        ]
+      },
+      "RolePolicyList": [],
+      "AttachedManagedPolicies": []
+    },
+    {
+      "RoleName": "other",
+      "RoleId": "AROA884026084973",
+      "Arn": "arn:aws:iam::123456789012:role/other",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "arn:aws:iam::123456789012:user/alice"
+            },
+            "Resource": "*"
+          }
+        ]
+      },
+      "RolePolicyList": [],
+      "AttachedManagedPolicies": []
+    }
+  ],
+  "Policies": []
+}
