@@ -36,8 +36,8 @@ dev = [
 iam-pathfinder = "iam_pathfinder.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/example/iam-pathfinder"
-Documentation = "https://github.com/example/iam-pathfinder#readme"
+Homepage = "https://github.com/su6osec/iam-pathfinder"
+Documentation = "https://github.com/su6osec/iam-pathfinder#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]

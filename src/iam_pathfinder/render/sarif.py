@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 
+from .. import REPOSITORY_URL
 from ..rules import ALL_RULES
 from ..rules.base import Finding, Severity
 from .report import Report
@@ -82,7 +83,7 @@ def payload(report: Report) -> dict:
             "driver": {
                 "name": "iam-pathfinder",
                 "version": report.tool_version,
-                "informationUri": "https://github.com/example/iam-pathfinder",
+                "informationUri": REPOSITORY_URL,
                 "rules": [_rule_entry(rule) for rule in ALL_RULES],
             }
         },

@@ -51,7 +51,7 @@ The full catalogue with explanations and remediations lives in
 Python 3.10+.
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/su6osec/iam-pathfinder.git
 cd iam-pathfinder
 python -m venv .venv && . .venv/bin/activate
 pip install -e .          # adds the `iam-pathfinder` command

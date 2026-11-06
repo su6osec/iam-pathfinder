@@ -171,6 +171,15 @@ class TestSarif:
         levels = {r["ruleId"]: r["level"] for r in data["runs"][0]["results"]}
         assert levels.get("FULL_ADMIN") == "error"
 
+    def test_information_uri_is_the_real_repository(self):
+        from iam_pathfinder import REPOSITORY_URL
+
+        data = json.loads(render("sarif", _report(_rich_export())))
+        uri = data["runs"][0]["tool"]["driver"]["informationUri"]
+        assert uri == REPOSITORY_URL
+        assert "github.com/su6osec/iam-pathfinder" in uri
+        assert "example" not in uri
+
 
 class TestMermaid:
     def test_mermaid_graph(self):
