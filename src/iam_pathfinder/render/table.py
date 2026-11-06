@@ -61,7 +61,8 @@ def render(report: Report) -> str:
             users=_count(scope["users"], "user"),
             groups=_count(scope["groups"], "group"),
             roles=_count(scope["roles"], "role"),
-            policies=_count(scope["managed_policies"], "managed policy"),
+            policies=_count(scope["managed_policies"], "managed policy",
+                            "managed policies"),
         )
     )
     counts = report.severity_counts
