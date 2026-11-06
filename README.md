@@ -1,5 +1,10 @@
 # iam-pathfinder
 
+[![CI](https://github.com/su6osec/iam-pathfinder/actions/workflows/ci.yml/badge.svg)](https://github.com/su6osec/iam-pathfinder/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/su6osec/iam-pathfinder?color=blue&label=release)](https://github.com/su6osec/iam-pathfinder/releases)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](https://github.com/su6osec/iam-pathfinder)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **Offline AWS IAM privilege-escalation and risky-permission analyzer.**
 It reads one local JSON file — the output of `aws iam get-account-authorization-details` —
 and reports the permissions that let a principal escalate, the roles that trust the
@@ -55,6 +60,11 @@ git clone https://github.com/su6osec/iam-pathfinder.git
 cd iam-pathfinder
 python -m venv .venv && . .venv/bin/activate
 pip install -e .          # adds the `iam-pathfinder` command
+```
+
+Or install the standalone pre-built wheel directly from the GitHub release:
+```bash
+pip install https://github.com/su6osec/iam-pathfinder/releases/download/v0.1.0/iam_pathfinder-0.1.0-py3-none-any.whl
 ```
 
 Development extras: `pip install -e ".[dev]"` (pytest + ruff).
@@ -218,7 +228,8 @@ iam-pathfinder explain PASSROLE_LAMBDA_CREATE_INVOKE
 Details, including the deliberate approximations, are in
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); verified facts and their sources
 are in [`docs/FACTS.md`](docs/FACTS.md); a guided tour is in
-[`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md).
+[`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md); and community integration and SEO
+details are in [`docs/DISCOVERABILITY.md`](docs/DISCOVERABILITY.md).
 
 ## Known limitations
 
