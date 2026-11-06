@@ -1,0 +1,33 @@
+{
+  "UserDetailList": [
+    {
+      "UserName": "alice",
+      "UserId": "AIDA037509909458",
+      "Arn": "arn:aws:iam::123456789012:user/alice",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "GroupList": [],
+      "UserPolicyList": [
+        {
+          "PolicyName": "inverted",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Resource": "*",
+                "NotAction": [
+                  "iam:*"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "AttachedManagedPolicies": []
+    }
+  ],
+  "GroupDetailList": [],
+  "RoleDetailList": [],
+  "Policies": []
+}

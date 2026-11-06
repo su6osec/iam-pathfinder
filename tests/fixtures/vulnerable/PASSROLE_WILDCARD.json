@@ -1,0 +1,86 @@
+{
+  "UserDetailList": [
+    {
+      "UserName": "alice",
+      "UserId": "AIDA037509909458",
+      "Arn": "arn:aws:iam::123456789012:user/alice",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "GroupList": [],
+      "UserPolicyList": [
+        {
+          "PolicyName": "wild",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "iam:PassRole",
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ],
+      "AttachedManagedPolicies": []
+    }
+  ],
+  "GroupDetailList": [],
+  "RoleDetailList": [
+    {
+      "RoleName": "app",
+      "RoleId": "AROA499227242725",
+      "Arn": "arn:aws:iam::123456789012:role/app",
+      "Path": "/",
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "arn:aws:iam::123456789012:user/nobody"
+            },
+            "Resource": "*"
+          }
+        ]
+      },
+      "RolePolicyList": [],
+      "AttachedManagedPolicies": [
+        {
+          "PolicyName": "ReadOnlyTools",
+          "PolicyArn": "arn:aws:iam::123456789012:policy/ReadOnlyTools"
+        }
+      ]
+    }
+  ],
+  "Policies": [
+    {
+      "PolicyName": "ReadOnlyTools",
+      "PolicyId": "ANPA818540488214",
+      "Arn": "arn:aws:iam::123456789012:policy/ReadOnlyTools",
+      "Path": "/",
+      "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
+      "IsAttachable": true,
+      "CreateDate": "2024-01-01T00:00:00+00:00",
+      "PolicyVersionList": [
+        {
+          "VersionId": "v1",
+          "IsDefaultVersion": true,
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "*"
+              }
+            ]
+          },
+          "CreateDate": "2024-01-01T00:00:00+00:00"
+        }
+      ]
+    }
+  ]
+}

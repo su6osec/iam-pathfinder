@@ -248,6 +248,165 @@ VULNERABLE: dict[str, dict] = {
         ],
         policies=[_admin_policy()],
     ),
+    # --- combination rules ---
+    "PASSROLE_EC2_RUNINSTANCES": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "pair",
+                    stmt(action=["iam:PassRole", "ec2:RunInstances"], resource="*"),
+                )
+            )
+        ],
+        roles=[role("app", attached=["AdministratorAccess"])],
+        policies=[_admin_policy()],
+    ),
+    "PASSROLE_LAMBDA_CREATE_INVOKE": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "pair",
+                    stmt(
+                        action=[
+                            "iam:PassRole",
+                            "lambda:CreateFunction",
+                            "lambda:InvokeFunction",
+                        ],
+                        resource="*",
+                    ),
+                )
+            )
+        ],
+        roles=[role("app", attached=["AdministratorAccess"])],
+        policies=[_admin_policy()],
+    ),
+    "PASSROLE_CLOUDFORMATION_CREATE_STACK": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "pair",
+                    stmt(
+                        action=["iam:PassRole", "cloudformation:CreateStack"],
+                        resource="*",
+                    ),
+                )
+            )
+        ],
+        roles=[role("app", attached=["AdministratorAccess"])],
+        policies=[_admin_policy()],
+    ),
+    "PASSROLE_WILDCARD": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "wild", stmt(action="iam:PassRole", resource="*")
+                )
+            )
+        ],
+        roles=[role("app", attached=["ReadOnlyTools"])],
+        policies=[_read_only_policy()],
+    ),
+    # --- hygiene rules ---
+    "FULL_ADMIN": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "admin", stmt(action="*", resource="*")
+                )
+            )
+        ]
+    ),
+    "SERVICE_WILDCARD": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "broad", stmt(action="iam:*", resource="*")
+                )
+            )
+        ]
+    ),
+    "BROAD_NOT_ACTION": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "inverted", stmt(not_action=["iam:*"], resource="*")
+                )
+            )
+        ]
+    ),
+    "STS_ASSUMEROLE_WILDCARD": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "assume-any", stmt(action="sts:AssumeRole", resource="*")
+                )
+            )
+        ],
+        roles=[
+            role(
+                "admin",
+                trust={
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        stmt("Allow", Principal={"AWS": user_arn("alice")}, Resource="*")
+                    ],
+                },
+                attached=["AdministratorAccess"],
+            )
+        ],
+        policies=[_admin_policy()],
+    ),
+    "TRUST_POLICY_PUBLIC": export(
+        roles=[
+            role(
+                "open",
+                trust={
+                    "Version": "2012-10-17",
+                    "Statement": [stmt("Allow", Principal="*", Resource="*")],
+                },
+                attached=["ReadOnlyTools"],
+            )
+        ],
+        policies=[_read_only_policy()],
+    ),
+    "TRUST_POLICY_CROSS_ACCOUNT": export(
+        roles=[
+            role(
+                "partner",
+                trust={
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        stmt(
+                            "Allow",
+                            Principal={"AWS": "arn:aws:iam::999999999999:root"},
+                            Resource="*",
+                        )
+                    ],
+                },
+                attached=["AdministratorAccess"],
+            )
+        ],
+        policies=[_admin_policy()],
+    ),
+    "TRUST_POLICY_ACCOUNT_ROOT": export(
+        roles=[
+            role(
+                "delegated",
+                trust={
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        stmt(
+                            "Allow",
+                            Principal={"AWS": f"arn:aws:iam::{ACCOUNT}:root"},
+                            Resource="*",
+                        )
+                    ],
+                },
+                attached=["ReadOnlyTools"],
+            )
+        ],
+        policies=[_read_only_policy()],
+    ),
 }
 
 # --- safe fixtures ---------------------------------------------------------
@@ -445,6 +604,198 @@ SAFE: dict[str, dict] = {
                 },
             ),
         ],
+    ),
+    # --- combination rules ---
+    # Pairing actions exist, but iam:PassRole is scoped to a role ARN that
+    # does not match any real role: nothing can actually be passed.
+    "PASSROLE_EC2_RUNINSTANCES": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "pair",
+                    stmt(
+                        action=["iam:PassRole", "ec2:RunInstances"],
+                        resource=f"arn:aws:iam::{ACCOUNT}:role/ghost",
+                    ),
+                )
+            )
+        ]
+    ),
+    "PASSROLE_LAMBDA_CREATE_INVOKE": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "pair",
+                    stmt(
+                        action=[
+                            "iam:PassRole",
+                            "lambda:CreateFunction",
+                            "lambda:InvokeFunction",
+                        ],
+                        resource=f"arn:aws:iam::{ACCOUNT}:role/ghost",
+                    ),
+                )
+            )
+        ]
+    ),
+    "PASSROLE_CLOUDFORMATION_CREATE_STACK": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "pair",
+                    stmt(
+                        action=["iam:PassRole", "cloudformation:CreateStack"],
+                        resource=f"arn:aws:iam::{ACCOUNT}:role/ghost",
+                    ),
+                )
+            )
+        ]
+    ),
+    # Scoped iam:PassRole on a real, non-privileged role is normal practice.
+    "PASSROLE_WILDCARD": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "scoped",
+                    stmt(
+                        action="iam:PassRole",
+                        resource=f"arn:aws:iam::{ACCOUNT}:role/app",
+                    ),
+                )
+            )
+        ],
+        roles=[
+            role(
+                "app",
+                trust={
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        stmt("Allow", Principal={"AWS": user_arn("alice")}, Resource="*")
+                    ],
+                },
+                attached=["ReadOnlyTools"],
+            )
+        ],
+        policies=[_read_only_policy()],
+    ),
+    # --- hygiene rules ---
+    # Action: * on one specific resource is not account-wide admin.
+    "FULL_ADMIN": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "bucket-owner",
+                    stmt(action="*", resource="arn:aws:s3:::my-bucket"),
+                )
+            )
+        ]
+    ),
+    # Specific IAM read actions instead of a service-wide wildcard.
+    "SERVICE_WILDCARD": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "read-iam",
+                    stmt(action=["iam:ListUsers", "iam:GetUser"], resource="*"),
+                )
+            )
+        ]
+    ),
+    # NotAction on a single resource is not broad account access.
+    "BROAD_NOT_ACTION": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "inverted-scoped",
+                    stmt(
+                        not_action=["iam:*"],
+                        resource="arn:aws:s3:::my-bucket",
+                    ),
+                )
+            )
+        ]
+    ),
+    # Scoped sts:AssumeRole on a role that trusts this principal.
+    "STS_ASSUMEROLE_WILDCARD": export(
+        users=[
+            _alice(
+                inline=_inline(
+                    "scoped",
+                    stmt(
+                        action="sts:AssumeRole",
+                        resource=f"arn:aws:iam::{ACCOUNT}:role/app",
+                    ),
+                )
+            )
+        ],
+        roles=[
+            role(
+                "app",
+                trust={
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        stmt("Allow", Principal={"AWS": user_arn("alice")}, Resource="*")
+                    ],
+                },
+                attached=["ReadOnlyTools"],
+            )
+        ],
+        policies=[_read_only_policy()],
+    ),
+    # --- trust rules ---
+    "TRUST_POLICY_PUBLIC": export(
+        roles=[
+            role(
+                "app",
+                trust={
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        stmt("Allow", Principal={"AWS": user_arn("alice")}, Resource="*")
+                    ],
+                },
+                attached=["ReadOnlyTools"],
+            )
+        ],
+        policies=[_read_only_policy()],
+    ),
+    # Cross-account trust WITH an sts:ExternalId condition: protected.
+    "TRUST_POLICY_CROSS_ACCOUNT": export(
+        roles=[
+            role(
+                "partner",
+                trust={
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        stmt(
+                            "Allow",
+                            Principal={"AWS": "arn:aws:iam::999999999999:root"},
+                            Resource="*",
+                            condition={
+                                "StringEquals": {"sts:ExternalId": "s3cr3t-integration-id"}
+                            },
+                        )
+                    ],
+                },
+                attached=["ReadOnlyTools"],
+            )
+        ],
+        policies=[_read_only_policy()],
+    ),
+    # Trusting a specific principal is the normal pattern (no root, no *).
+    "TRUST_POLICY_ACCOUNT_ROOT": export(
+        roles=[
+            role(
+                "app",
+                trust={
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        stmt("Allow", Principal={"AWS": user_arn("alice")}, Resource="*")
+                    ],
+                },
+                attached=["ReadOnlyTools"],
+            )
+        ],
+        policies=[_read_only_policy()],
     ),
 }
 

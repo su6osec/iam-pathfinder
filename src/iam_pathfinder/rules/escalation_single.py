@@ -14,17 +14,22 @@ finding covers them instead.
 from __future__ import annotations
 
 from ..context import AnalysisContext
-from ..evaluator import PermissionQuery, resource_covers
-from ..trust import trust_allows
+from ..evaluator import resource_covers
 from .base import (
     HIGH_CONFIDENCE,
     LOW_CONFIDENCE,
     MEDIUM_CONFIDENCE,
-    Evidence,
     Finding,
     Rule,
     Severity,
-    evidence_from_ref,
+)
+from .helpers import (
+    assumable_role_names,
+    confidence_for,
+    covered_values,
+    covers_wildcard,
+    evidence_for,
+    scope_note,
 )
 
 RHINO_ESCALATION = (
@@ -34,59 +39,6 @@ AWS_EVAL_LOGIC = (
     "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html"
 )
 AWS_IAM_ACTIONS = "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_actions.html"
-
-
-# --- shared helpers --------------------------------------------------------
-
-
-def _confidence(query: PermissionQuery) -> str:
-    if query.partial_denies:
-        return LOW_CONFIDENCE
-    if query.conditional:
-        return MEDIUM_CONFIDENCE
-    return HIGH_CONFIDENCE
-
-
-def _covers_wildcard(query: PermissionQuery) -> bool:
-    """True when at least one matching allow has ``Resource: "*"``."""
-    return any(resource_covers(r.statement, "*") for r in query.allows)
-
-
-def _covered_values(query: PermissionQuery, values: list[str]) -> list[str]:
-    """Subset of ``values`` matched by the query's allow resource scopes."""
-    return [
-        v for v in values if any(resource_covers(r.statement, v) for r in query.allows)
-    ]
-
-
-def _evidence(query: PermissionQuery) -> list[Evidence]:
-    return [evidence_from_ref(r) for r in query.allows]
-
-
-def _scope_note(query: PermissionQuery, label: str = "Resource scope") -> str:
-    if _covers_wildcard(query):
-        return f"{label}: * (any resource)"
-    patterns = sorted({p for r in query.allows for p in r.statement.resources})
-    return f"{label}: {', '.join(patterns) or 'unspecified'}"
-
-
-def _assumable_role_names(ctx: AnalysisContext, kind: str, name: str) -> set[str]:
-    """Roles this principal could actually assume right now.
-
-    Requires both the sts:AssumeRole permission covering the role ARN and a
-    trust policy that admits the principal.
-    """
-    principal_arn = ctx.arn(kind, name)
-    assume_query = ctx.eff(kind, name).query("sts:AssumeRole")
-    if not assume_query.allowed:
-        return set()
-    assumable: set[str] = set()
-    for role_name, role in ctx.account.roles.items():
-        if not _covered_values(assume_query, [role.arn]):
-            continue
-        if trust_allows(role, principal_arn).allowed:
-            assumable.add(role_name)
-    return assumable
 
 
 class CreatePolicyVersionRule(Rule):
@@ -117,8 +69,8 @@ class CreatePolicyVersionRule(Rule):
             if not query.allowed:
                 continue
             own_policies = ctx.attached_local_policy_arns(kind, name)
-            wildcard = _covers_wildcard(query)
-            covers_own = bool(_covered_values(query, own_policies))
+            wildcard = covers_wildcard(query)
+            covers_own = bool(covered_values(query, own_policies))
             if not wildcard and not covers_own:
                 # Scoped to policies the principal does not own: modifying
                 # someone else's policy cannot benefit this principal.
@@ -134,10 +86,10 @@ class CreatePolicyVersionRule(Rule):
                     kind,
                     name,
                     permissions=["iam:CreatePolicyVersion"],
-                    evidence=_evidence(query),
-                    confidence=_confidence(query),
+                    evidence=evidence_for(query),
+                    confidence=confidence_for(query),
                     conditional=query.conditional,
-                    notes=[_scope_note(query), f"Reachable targets: {scope}"],
+                    notes=[scope_note(query), f"Reachable targets: {scope}"],
                     extras={"resource_scope": "*" if wildcard else "attached-policies"},
                 )
             )
@@ -172,13 +124,13 @@ class SetDefaultPolicyVersionRule(Rule):
             if not query.allowed:
                 continue
             own_policies = ctx.attached_local_policy_arns(kind, name)
-            wildcard = _covers_wildcard(query)
-            covers_own = bool(_covered_values(query, own_policies))
+            wildcard = covers_wildcard(query)
+            covers_own = bool(covered_values(query, own_policies))
             if not wildcard and not covers_own:
                 continue
             can_create = eff.query("iam:CreatePolicyVersion").allowed
             severity = Severity.HIGH if can_create else Severity.MEDIUM
-            notes = [_scope_note(query)]
+            notes = [scope_note(query)]
             notes.append(
                 "Also holds iam:CreatePolicyVersion: can publish and activate "
                 "an arbitrary new policy version."
@@ -193,9 +145,9 @@ class SetDefaultPolicyVersionRule(Rule):
                     kind,
                     name,
                     permissions=["iam:SetDefaultPolicyVersion"],
-                    evidence=_evidence(query),
+                    evidence=evidence_for(query),
                     severity=severity,
-                    confidence=_confidence(query),
+                    confidence=confidence_for(query),
                     conditional=query.conditional,
                     notes=notes,
                     extras={
@@ -231,9 +183,9 @@ class _AttachRuleBase(Rule):
             query = ctx.eff(kind, name).query(self.required_permissions[0])
             if not query.allowed:
                 continue
-            wildcard = _covers_wildcard(query)
-            covered_targets = _covered_values(query, all_targets)
-            covered_policies = _covered_values(query, local_policies)
+            wildcard = covers_wildcard(query)
+            covered_targets = covered_values(query, all_targets)
+            covered_policies = covered_values(query, local_policies)
             # Policy-ARN scope only matters when the policy itself is
             # powerful: attaching a harmless policy escalates nobody.
             privileged_policies = [
@@ -269,11 +221,11 @@ class _AttachRuleBase(Rule):
                     kind,
                     name,
                     permissions=[self.required_permissions[0]],
-                    evidence=_evidence(query),
+                    evidence=evidence_for(query),
                     severity=severity,
-                    confidence=_confidence(query),
+                    confidence=confidence_for(query),
                     conditional=query.conditional,
-                    notes=[_scope_note(query), reason],
+                    notes=[scope_note(query), reason],
                     extras={
                         "resource_scope": "*" if wildcard else "scoped",
                         "covered_targets": covered_targets,
@@ -387,7 +339,7 @@ class AttachRolePolicyRule(_AttachRuleBase):
     )
 
     def _self_benefiting(self, ctx, kind, name, covered_targets):
-        assumable = _assumable_role_names(ctx, kind, name)
+        assumable = assumable_role_names(ctx, kind, name)
         target_arns = {
             ctx.account.roles[r].arn for r in assumable
         }
@@ -399,7 +351,7 @@ class AttachRolePolicyRule(_AttachRuleBase):
                 "Scope includes Resource: *: can attach any policy to any "
                 "role (including roles this principal can assume)."
             )
-        assumable = _assumable_role_names(ctx, kind, name)
+        assumable = assumable_role_names(ctx, kind, name)
         named = [
             r for r in sorted(assumable) if ctx.account.roles[r].arn in covered_targets
         ]
@@ -432,8 +384,8 @@ class PutUserPolicyRule(Rule):
             query = ctx.eff(kind, name).query("iam:PutUserPolicy")
             if not query.allowed:
                 continue
-            wildcard = _covers_wildcard(query)
-            covered = _covered_values(query, user_arns)
+            wildcard = covers_wildcard(query)
+            covered = covered_values(query, user_arns)
             if not wildcard and not covered:
                 continue
             own = kind == "user" and ctx.arn(kind, name) in covered
@@ -444,12 +396,12 @@ class PutUserPolicyRule(Rule):
                     kind,
                     name,
                     permissions=["iam:PutUserPolicy"],
-                    evidence=_evidence(query),
+                    evidence=evidence_for(query),
                     severity=Severity.HIGH if self_benefiting else Severity.MEDIUM,
-                    confidence=_confidence(query),
+                    confidence=confidence_for(query),
                     conditional=query.conditional,
                     notes=[
-                        _scope_note(query),
+                        scope_note(query),
                         (
                             "Scope covers this principal's own user ARN or '*': "
                             "direct self-escalation by writing an admin inline "
@@ -494,8 +446,8 @@ class PutGroupPolicyRule(Rule):
             query = ctx.eff(kind, name).query("iam:PutGroupPolicy")
             if not query.allowed:
                 continue
-            wildcard = _covers_wildcard(query)
-            covered = _covered_values(query, group_arns)
+            wildcard = covers_wildcard(query)
+            covered = covered_values(query, group_arns)
             if not wildcard and not covered:
                 continue
             own_groups: set[str] = set()
@@ -513,12 +465,12 @@ class PutGroupPolicyRule(Rule):
                     kind,
                     name,
                     permissions=["iam:PutGroupPolicy"],
-                    evidence=_evidence(query),
+                    evidence=evidence_for(query),
                     severity=Severity.HIGH if self_benefiting else Severity.MEDIUM,
-                    confidence=_confidence(query),
+                    confidence=confidence_for(query),
                     conditional=query.conditional,
                     notes=[
-                        _scope_note(query),
+                        scope_note(query),
                         (
                             "Scope covers a group this principal belongs to (or "
                             "'*'): direct self-escalation."
@@ -561,11 +513,11 @@ class PutRolePolicyRule(Rule):
             query = ctx.eff(kind, name).query("iam:PutRolePolicy")
             if not query.allowed:
                 continue
-            wildcard = _covers_wildcard(query)
-            covered = _covered_values(query, role_arns)
+            wildcard = covers_wildcard(query)
+            covered = covered_values(query, role_arns)
             if not wildcard and not covered:
                 continue
-            assumable = _assumable_role_names(ctx, kind, name)
+            assumable = assumable_role_names(ctx, kind, name)
             assumable_arns = {ctx.account.roles[r].arn for r in assumable}
             self_benefiting = wildcard or bool(assumable_arns.intersection(covered))
             named = [
@@ -577,12 +529,12 @@ class PutRolePolicyRule(Rule):
                     kind,
                     name,
                     permissions=["iam:PutRolePolicy"],
-                    evidence=_evidence(query),
+                    evidence=evidence_for(query),
                     severity=Severity.HIGH if self_benefiting else Severity.MEDIUM,
-                    confidence=_confidence(query),
+                    confidence=confidence_for(query),
                     conditional=query.conditional,
                     notes=[
-                        _scope_note(query),
+                        scope_note(query),
                         (
                             f"Scope includes assumable role(s): {', '.join(named)}."
                             if named
@@ -637,9 +589,9 @@ class AddUserToGroupRule(Rule):
             query = ctx.eff(kind, name).query("iam:AddUserToGroup")
             if not query.allowed:
                 continue
-            wildcard = _covers_wildcard(query)
-            covered_users = _covered_values(query, user_arns)
-            covered_groups = _covered_values(query, group_arns)
+            wildcard = covers_wildcard(query)
+            covered_users = covered_values(query, user_arns)
+            covered_groups = covered_values(query, group_arns)
             if not wildcard and not covered_users and not covered_groups:
                 continue
             # Self-escalation requires being able to add *oneself*: user scope
@@ -683,11 +635,11 @@ class AddUserToGroupRule(Rule):
                     kind,
                     name,
                     permissions=["iam:AddUserToGroup"],
-                    evidence=_evidence(query),
+                    evidence=evidence_for(query),
                     severity=severity,
-                    confidence=_confidence(query),
+                    confidence=confidence_for(query),
                     conditional=query.conditional,
-                    notes=[_scope_note(query), reason],
+                    notes=[scope_note(query), reason],
                     extras={
                         "resource_scope": "*" if wildcard else "scoped",
                         "privileged_groups": privileged_groups,
@@ -726,9 +678,9 @@ class CreateAccessKeyRule(Rule):
             query = ctx.eff(kind, name).query("iam:CreateAccessKey")
             if not query.allowed:
                 continue
-            wildcard = _covers_wildcard(query)
+            wildcard = covers_wildcard(query)
             user_arns = [u.arn for u in ctx.account.users.values()]
-            covered = _covered_values(query, user_arns)
+            covered = covered_values(query, user_arns)
             own = ctx.arn(kind, name) if kind == "user" else None
             others = [arn for arn in covered if arn != own]
             if not others:
@@ -738,7 +690,7 @@ class CreateAccessKeyRule(Rule):
                 n for n in covered_names if ctx.is_privileged("user", n)
             ]
             severity = Severity.HIGH if privileged_targets else Severity.MEDIUM
-            notes = [_scope_note(query)]
+            notes = [scope_note(query)]
             if privileged_targets:
                 notes.append(
                     "Can create keys for privileged user(s): "
@@ -755,9 +707,9 @@ class CreateAccessKeyRule(Rule):
                     kind,
                     name,
                     permissions=["iam:CreateAccessKey"],
-                    evidence=_evidence(query),
+                    evidence=evidence_for(query),
                     severity=severity,
-                    confidence=_confidence(query),
+                    confidence=confidence_for(query),
                     conditional=query.conditional,
                     notes=notes,
                     extras={
@@ -823,7 +775,7 @@ class LoginProfileRule(Rule):
                 n for n in covered_names if ctx.is_privileged("user", n)
             ]
             severity = Severity.HIGH if privileged_targets else Severity.MEDIUM
-            notes = [_scope_note(query)]
+            notes = [scope_note(query)]
             if privileged_targets:
                 notes.append(
                     "Can set passwords for privileged user(s): "
@@ -840,9 +792,9 @@ class LoginProfileRule(Rule):
                     kind,
                     name,
                     permissions=permissions,
-                    evidence=_evidence(query),
+                    evidence=evidence_for(query),
                     severity=severity,
-                    confidence=_confidence(query),
+                    confidence=confidence_for(query),
                     conditional=query.conditional,
                     notes=notes,
                     extras={
@@ -883,12 +835,12 @@ class UpdateAssumeRolePolicyRule(Rule):
             assume_q = eff.query("sts:AssumeRole")
             if not (update_q.allowed and assume_q.allowed):
                 continue  # both permissions are required for this technique
-            wildcard_update = _covers_wildcard(update_q)
-            wildcard_assume = _covers_wildcard(assume_q)
+            wildcard_update = covers_wildcard(update_q)
+            wildcard_assume = covers_wildcard(assume_q)
             # Roles whose trust this principal can rewrite *and* for which it
             # holds the assume permission (the two halves of the technique).
-            update_targets = _covered_values(update_q, role_arns)
-            assume_targets = _covered_values(assume_q, role_arns)
+            update_targets = covered_values(update_q, role_arns)
+            assume_targets = covered_values(assume_q, role_arns)
             overlap = sorted(set(update_targets) & set(assume_targets))
             if wildcard_update and wildcard_assume:
                 overlap_names = sorted(ctx.account.roles)
@@ -922,7 +874,7 @@ class UpdateAssumeRolePolicyRule(Rule):
                     kind,
                     name,
                     permissions=["iam:UpdateAssumeRolePolicy", "sts:AssumeRole"],
-                    evidence=_evidence(update_q) + _evidence(assume_q),
+                    evidence=evidence_for(update_q) + evidence_for(assume_q),
                     severity=severity,
                     confidence=(
                         LOW_CONFIDENCE
@@ -933,8 +885,8 @@ class UpdateAssumeRolePolicyRule(Rule):
                     ),
                     conditional=conditional,
                     notes=[
-                        _scope_note(update_q),
-                        _scope_note(assume_q, "sts:AssumeRole scope"),
+                        scope_note(update_q),
+                        scope_note(assume_q, "sts:AssumeRole scope"),
                         reason,
                     ],
                     extras={

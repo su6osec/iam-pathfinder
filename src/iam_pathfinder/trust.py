@@ -80,6 +80,18 @@ def account_id_of_entry(entry: str) -> str | None:
     return None
 
 
+def iam_account_of(entry: str) -> str | None:
+    """Account id of *any* IAM principal entry (root, user, role, bare id).
+
+    Used to classify trust entries as same-account or cross-account.
+    Non-IAM entries (services, federated providers) return ``None``.
+    """
+    if _ACCOUNT_ID_RE.match(entry):
+        return entry
+    match = re.match(r"^arn:aws[a-z-]*:iam::(\d{12}):", entry)
+    return match.group(1) if match else None
+
+
 def has_external_id_condition(stmt: Statement) -> bool:
     """True when the statement conditions on ``sts:ExternalId``.
 

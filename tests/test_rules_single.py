@@ -170,7 +170,10 @@ class TestCredentialRules:
 class TestAdminSkipPolicy:
     def test_admin_principal_gets_no_escalation_findings(self):
         # A full admin holding escalation permissions is not "escalating" -
-        # the admin finding covers them (added in the hygiene milestone).
+        # the FULL_ADMIN finding covers them instead.  Hygiene findings (also
+        # reported for admins) are filtered by category here.
+        from iam_pathfinder.rules import get_rule
+
         data = export(
             users=[
                 user(
@@ -182,10 +185,11 @@ class TestAdminSkipPolicy:
             ]
         )
         _ctx, findings = _analyze(data)
+        assert any(f.rule_id == "FULL_ADMIN" for f in findings)
         escalation = [
             f
             for f in findings
-            if f.rule_id != "FULL_ADMIN"
+            if get_rule(f.rule_id).category in ("escalation", "combination")
         ]
         assert escalation == []
 

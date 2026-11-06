@@ -1,6 +1,6 @@
 """Rule registry.
 
-``RULES`` is the single source of truth: the CLI's ``rules``/``explain``
+``ALL_RULES`` is the single source of truth: the CLI's ``rules``/``explain``
 commands and the analyzer all read from it.  Adding a rule means adding a
 class here - there is no other registration path.
 """
@@ -8,10 +8,13 @@ class here - there is no other registration path.
 from __future__ import annotations
 
 from .base import Finding, Rule, Severity
+from .combination import COMBINATION_RULES
 from .escalation_single import SINGLE_PERMISSION_RULES
+from .hygiene import HYGIENE_RULES
 
-# Combination and hygiene rules are added in later milestones.
-ALL_RULES: tuple[Rule, ...] = SINGLE_PERMISSION_RULES
+ALL_RULES: tuple[Rule, ...] = (
+    SINGLE_PERMISSION_RULES + COMBINATION_RULES + HYGIENE_RULES
+)
 
 _RULES_BY_ID: dict[str, Rule] = {rule.id: rule for rule in ALL_RULES}
 

@@ -2,7 +2,7 @@
   "UserDetailList": [
     {
       "UserName": "alice",
-      "UserId": "AIDA717001872152",
+      "UserId": "AIDA037509909458",
       "Arn": "arn:aws:iam::123456789012:user/alice",
       "Path": "/",
       "CreateDate": "2024-01-01T00:00:00+00:00",
@@ -28,7 +28,7 @@
   "GroupDetailList": [
     {
       "GroupName": "admins",
-      "GroupId": "AGPA902666774040",
+      "GroupId": "AGPA000821773291",
       "Arn": "arn:aws:iam::123456789012:group/admins",
       "Path": "/",
       "CreateDate": "2024-01-01T00:00:00+00:00",
@@ -45,7 +45,7 @@
   "Policies": [
     {
       "PolicyName": "AdministratorAccess",
-      "PolicyId": "ANPA450294842654",
+      "PolicyId": "ANPA012694126048",
       "Arn": "arn:aws:iam::123456789012:policy/AdministratorAccess",
       "Path": "/",
       "DefaultVersionId": "v1",
