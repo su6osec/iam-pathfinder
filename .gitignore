@@ -1,0 +1,31 @@
+# --- AWS exports contain sensitive account data; NEVER commit them ---
+export*.json
+*authorization-details*.json
+*get-account-authorization*.json
+*.export.json
+iam-export*.json
+aws-export*.json
+# keep the synthetic example that ships with the repo
+!examples/vulnerable-account.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.env
+
+# --- Tooling ---
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Editors / OS ---
+.DS_Store
+.idea/
+.vscode/
